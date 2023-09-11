@@ -1,21 +1,21 @@
 package com.ss.ugc.android.alpha_player.controller
 
-import android.arch.lifecycle.Lifecycle
-import android.arch.lifecycle.LifecycleObserver
-import android.arch.lifecycle.LifecycleOwner
-import android.arch.lifecycle.OnLifecycleEvent
 import android.content.Context
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.os.Message
 import android.os.Process
-import android.support.annotation.WorkerThread
 import android.text.TextUtils
 import android.util.Log
 import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.WorkerThread
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.OnLifecycleEvent
 import com.ss.ugc.android.alpha_player.IMonitor
 import com.ss.ugc.android.alpha_player.IPlayerAction
 import com.ss.ugc.android.alpha_player.model.AlphaVideoViewType
@@ -34,11 +34,17 @@ import java.lang.Exception
 /**
  * created by dengzhuoyao on 2020/07/08
  */
-class PlayerController(val context: Context, owner: LifecycleOwner, val alphaVideoViewType: AlphaVideoViewType, mediaPlayer: IMediaPlayer): IPlayerControllerExt, LifecycleObserver, Handler.Callback {
+class PlayerController(
+    val context: Context,
+    owner: LifecycleOwner,
+    val alphaVideoViewType: AlphaVideoViewType,
+    mediaPlayer: IMediaPlayer
+) : IPlayerControllerExt,
+    LifecycleObserver, Handler.Callback {
 
     companion object {
         const val INIT_MEDIA_PLAYER: Int = 1
-        const val SET_DATA_SOURCE: Int =  2
+        const val SET_DATA_SOURCE: Int = 2
         const val START: Int = 3
         const val PAUSE: Int = 4
         const val RESUME: Int = 5
@@ -48,14 +54,16 @@ class PlayerController(val context: Context, owner: LifecycleOwner, val alphaVid
         const val RESET: Int = 9
 
         fun get(configuration: Configuration, mediaPlayer: IMediaPlayer? = null): PlayerController {
-            return PlayerController(configuration.context, configuration.lifecycleOwner,
+            return PlayerController(
+                configuration.context, configuration.lifecycleOwner,
                 configuration.alphaVideoViewType,
-                mediaPlayer ?: DefaultSystemPlayer())
+                mediaPlayer ?: DefaultSystemPlayer()
+            )
         }
     }
 
     private var suspendDataSource: DataSource? = null
-    var isPlaying : Boolean = false
+    var isPlaying: Boolean = false
     var playerState = PlayerState.NOT_PREPARED
     var mMonitor: IMonitor? = null
     var mPlayerAction: IPlayerAction? = null
@@ -66,7 +74,7 @@ class PlayerController(val context: Context, owner: LifecycleOwner, val alphaVid
     val mainHandler: Handler = Handler(Looper.getMainLooper())
     var playThread: HandlerThread? = null
 
-    private val mPreparedListener = object: IMediaPlayer.OnPreparedListener {
+    private val mPreparedListener = object : IMediaPlayer.OnPreparedListener {
         override fun onPrepared() {
             sendMessage(getMessage(START, null))
         }
@@ -94,14 +102,15 @@ class PlayerController(val context: Context, owner: LifecycleOwner, val alphaVid
     }
 
     private fun initAlphaView() {
-        alphaVideoView = when(alphaVideoViewType) {
+        alphaVideoView = when (alphaVideoViewType) {
             AlphaVideoViewType.GL_SURFACE_VIEW -> AlphaVideoGLSurfaceView(context, null)
             AlphaVideoViewType.GL_TEXTURE_VIEW -> AlphaVideoGLTextureView(context, null)
         }
         alphaVideoView.let {
             val layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT)
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
             it.setLayoutParams(layoutParams)
             it.setPlayerController(this)
             it.setVideoRenderer(VideoRenderer(it))
@@ -248,7 +257,10 @@ class PlayerController(val context: Context, owner: LifecycleOwner, val alphaVid
             setVideoFromFile(dataSource)
         } catch (e: Exception) {
             e.printStackTrace()
-            monitor(false, errorInfo = "alphaVideoView set dataSource failure: " + Log.getStackTraceString(e))
+            monitor(
+                false,
+                errorInfo = "alphaVideoView set dataSource failure: " + Log.getStackTraceString(e)
+            )
             emitEndSignal()
         }
     }
@@ -309,10 +321,12 @@ class PlayerController(val context: Context, owner: LifecycleOwner, val alphaVid
                     mPlayerAction?.startAction()
                 }
             }
+
             PlayerState.PAUSED -> {
                 mediaPlayer.start()
                 playerState = PlayerState.STARTED
             }
+
             PlayerState.NOT_PREPARED, PlayerState.STOPPED -> {
                 try {
                     prepareAsync()
@@ -328,63 +342,82 @@ class PlayerController(val context: Context, owner: LifecycleOwner, val alphaVid
     @WorkerThread
     private fun parseVideoSize() {
         val videoInfo = mediaPlayer.getVideoInfo()
-        alphaVideoView.measureInternal((videoInfo.videoWidth / 2).toFloat(), videoInfo.videoHeight.toFloat())
+        alphaVideoView.measureInternal(
+            (videoInfo.videoWidth / 2).toFloat(),
+            videoInfo.videoHeight.toFloat()
+        )
 
         val scaleType = alphaVideoView.getScaleType()
         mainHandler.post {
-            mPlayerAction?.onVideoSizeChanged(videoInfo.videoWidth / 2, videoInfo.videoHeight, scaleType)
+            mPlayerAction?.onVideoSizeChanged(
+                videoInfo.videoWidth / 2,
+                videoInfo.videoHeight,
+                scaleType
+            )
         }
     }
 
     override fun handleMessage(msg: Message?): Boolean {
         msg?.let {
-            when(msg.what) {
+            when (msg.what) {
                 INIT_MEDIA_PLAYER -> {
                     initPlayer()
                 }
+
                 SURFACE_PREPARED -> {
                     val surface = msg.obj as Surface
                     mediaPlayer.setSurface(surface)
                     handleSuspendedEvent()
                 }
+
                 SET_DATA_SOURCE -> {
                     val dataSource = msg.obj as DataSource
                     setDataSource(dataSource)
                 }
+
                 START -> {
                     try {
                         parseVideoSize()
                         playerState = PlayerState.PREPARED
                         startPlay()
                     } catch (e: Exception) {
-                        monitor(false, errorInfo = "start video failure: " + Log.getStackTraceString(e))
+                        monitor(
+                            false,
+                            errorInfo = "start video failure: " + Log.getStackTraceString(e)
+                        )
                         emitEndSignal()
                     }
                 }
+
                 PAUSE -> {
                     when (playerState) {
                         PlayerState.STARTED -> {
                             mediaPlayer.pause()
                             playerState = PlayerState.PAUSED
                         }
+
                         else -> {}
                     }
                 }
+
                 RESUME -> {
                     if (isPlaying) {
                         startPlay()
                     } else {
                     }
                 }
+
                 STOP -> {
                     when (playerState) {
                         PlayerState.STARTED, PlayerState.PAUSED -> {
                             mediaPlayer.pause()
                             playerState = PlayerState.PAUSED
                         }
+
                         else -> {}
                     }
                 }
+
                 DESTROY -> {
                     alphaVideoView.onPause()
                     if (playerState == PlayerState.STARTED) {
@@ -404,11 +437,13 @@ class PlayerController(val context: Context, owner: LifecycleOwner, val alphaVid
                         it.interrupt()
                     }
                 }
+
                 RESET -> {
                     mediaPlayer.reset()
                     playerState = PlayerState.NOT_PREPARED
                     isPlaying = false
                 }
+
                 else -> {}
             }
         }

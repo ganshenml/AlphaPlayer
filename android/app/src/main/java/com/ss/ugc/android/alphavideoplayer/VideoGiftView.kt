@@ -1,6 +1,5 @@
 package com.ss.ugc.android.alphavideoplayer
 
-import android.arch.lifecycle.LifecycleOwner
 import android.content.Context
 import android.text.TextUtils
 import android.util.AttributeSet
@@ -9,6 +8,7 @@ import android.view.LayoutInflater
 import android.widget.FrameLayout
 import android.widget.RelativeLayout
 import android.widget.Toast
+import androidx.lifecycle.LifecycleOwner
 import com.ss.ugc.android.alpha_player.IMonitor
 import com.ss.ugc.android.alpha_player.IPlayerAction
 import com.ss.ugc.android.alpha_player.controller.IPlayerController

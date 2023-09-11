@@ -1,13 +1,15 @@
 package com.ss.ugc.android.alpha_player.model
 
-import android.arch.lifecycle.LifecycleOwner
 import android.content.Context
+import androidx.lifecycle.LifecycleOwner
 
 /**
  * created by dengzhuoyao on 2020/07/07
  */
-class Configuration(var context: Context,
-                    var lifecycleOwner: LifecycleOwner) {
+class Configuration(
+    var context: Context,
+    var lifecycleOwner: LifecycleOwner
+) {
     var alphaVideoViewType: AlphaVideoViewType = AlphaVideoViewType.GL_SURFACE_VIEW
 }
 
